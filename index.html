@@ -1,54 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <style>
-        /* Basic styles for tabs */
-        .tab {
-            display: none;
-        }
-        .tab.active {
-            display: block;
-        }
-        .tab-button {
-            cursor: pointer;
-            padding: 10px;
-            border: none;
-            background: lightgray;
-        }
-        .tab-button.active {
-            background: gray;
-            color: white;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log360 — Dashboard & Incident Workbench</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --color-bg-page:          #F4F6F8;
+  --color-bg-primary:       #FFFFFF;
+  --color-bg-secondary:     #F1F4F7;
+  --color-bg-tertiary:      #E8ECF0;
+  --color-bg-danger:        #FCEBEB;
+  --color-bg-warning:       #FAEEDA;
+  --color-bg-success:       #EAF3DE;
+  --color-bg-info:          #E6F1FB;
+  --color-bg-purple:        #EEEDFE;
+  --color-bg-teal:          #E1F5EE;
+  --color-text-primary:     #0F1923;
+  --color-text-secondary:   #4A6274;
+  --color-text-tertiary:    #8FA8B8;
+  --color-text-danger:      #A32D2D;
+  --color-text-warning:     #854F0B;
+  --color-text-success:     #3B6D11;
+  --color-text-info:        #185FA5;
+  --color-text-purple:      #534AB7;
+  --color-text-teal:        #0F6E56;
+  --color-border-primary:   rgba(15,25,35,0.40);
+  --color-border-secondary: rgba(15,25,35,0.18);
+  --color-border-tertiary:  rgba(15,25,35,0.10);
+  --color-border-danger:    #F09595;
+  --color-border-warning:   #FAC775;
+  --palette-red:    #E24B4A;
+  --palette-amber:  #EF9F27;
+  --palette-blue:   #378ADD;
+  --palette-green:  #639922;
+  --palette-purple: #7F77DD;
+  --palette-teal:   #1D9E75;
+  --palette-gray:   #B4B2A9;
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-pill: 20px;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-page:          #0B1420;
+    --color-bg-primary:       #111E2E;
+    --color-bg-secondary:     #162030;
+    --color-bg-tertiary:      #1C2A3C;
+    --color-bg-danger:        #3D1010;
+    --color-bg-warning:       #3D2A08;
+    --color-bg-success:       #1A3008;
+    --color-bg-info:          #0C2240;
+    --color-bg-purple:        #1E1A4A;
+    --color-bg-teal:          #062418;
+    --color-text-primary:     #E8F0F7;
+    --color-text-secondary:   #8FA8B8;
+    --color-text-tertiary:    #4A6274;
+    --color-border-primary:   rgba(232,240,247,0.40);
+    --color-border-secondary: rgba(232,240,247,0.15);
+    --color-border-tertiary:  rgba(232,240,247,0.08);
+    --color-border-danger:    #7A2020;
+    --color-border-warning:   #7A5010;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--color-bg-page); color: var(--color-text-primary); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+.app-bar { background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-secondary); padding: 0 var(--space-xl); display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 100; }
+.app-bar-left { display: flex; align-items: center; gap: var(--space-md); }
+.app-bar-right { display: flex; align-items: center; gap: var(--space-sm); }
+.product-logo { display: flex; align-items: center; gap: var(--space-sm); font-size: 13px; font-weight: 600; color: var(--color-text-primary); text-decoration: none; }
+.logo-shield { width: 26px; height: 26px; background: var(--color-text-info); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.app-bar-sep { width: 1px; height: 20px; background: var(--color-border-secondary); }
+.breadcrumb { font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+.breadcrumb span { color: var(--color-text-tertiary); font-size: 11px; }
+
+.btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-sans); transition: background 0.12s, color 0.12s, border-color 0.12s; white-space: nowrap; line-height: 1; }
+.btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+.btn-primary { background: var(--color-text-info); color: #fff; border-color: var(--color-text-info); }
+.btn-primary:hover { background: #0C447C; border-color: #0C447C; color: #fff; }
+.btn-danger { background: var(--color-bg-danger); color: var(--color-text-danger); border-color: var(--color-border-danger); }
+.btn-danger:hover { background: #F09595; }
+
+.tab-nav { display: flex; border-bottom: 1px solid var(--color-border-secondary); background: var(--color-bg-primary); padding: 0 var(--space-xl); }
+.tab-button { font-size: 13px; padding: 12px 18px; cursor: pointer; color: var(--color-text-secondary); border: none; background: transparent; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.12s, border-color 0.12s; user-select: none; font-family: var(--font-sans); }
+.tab-button:hover { color: var(--color-text-primary); }
+.tab-button.active { color: var(--color-text-primary); font-weight: 500; border-bottom-color: #185FA5; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 20px 24px 40px; }
+.badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 500; white-space: nowrap; flex-shrink: 0; font-family: var(--font-sans); display: inline-block; }
+.b-crit { background: var(--color-bg-danger); color: var(--color-text-danger); }
+.b-high { background: var(--color-bg-warning); color: var(--color-text-warning); }
+.b-med { background: var(--color-bg-info); color: var(--color-text-info); }
+.b-ok { background: var(--color-bg-success); color: var(--color-text-success); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+
+@media (max-width: 1024px) { .grid3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px) { .grid2, .grid3, .grid4 { grid-template-columns: 1fr; } }
+
+.db { padding: 1.25rem 0; font-family: var(--font-sans); }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: var(--space-sm); padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.tb-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); letter-spacing: -0.2px; }
+.tb-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; }
+
+.trange { display: flex; gap: 5px; }
+.trange button { font-size: 11px; padding: 4px 12px; border-radius: var(--radius-pill); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-sans); transition: background 0.12s; }
+.trange button.active { background: var(--color-bg-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.mc { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; border: 0.5px solid var(--color-border-tertiary); }
+.mc-lbl { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; letter-spacing: 0.2px; text-transform: uppercase; font-family: var(--font-sans); }
+.mc-val { font-size: 24px; font-weight: 500; color: var(--color-text-primary); line-height: 1; font-family: var(--font-sans); }
+.mc-sub { font-size: 11px; margin-top: 5px; font-family: var(--font-sans); }
+
+.card { background: var(--color-bg-primary); border: 1px solid var(--color-border-secondary); border-radius: var(--radius-lg); padding: 16px 18px; }
+.chdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; gap: var(--space-sm); }
+.ctitle { font-size: 13px; font-weight: 500; color: var(--color-text-primary); line-height: 1.3; font-family: var(--font-sans); }
+.cuc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; font-family: var(--font-sans); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-sans); }
+.leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+
+.drill { font-size: 11px; padding: 4px 10px; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; margin-top: var(--space-md); font-family: var(--font-sans); display: inline-block; transition: background 0.12s, color 0.12s; }
+.drill:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+
+.rep-pill { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; width: 58px; text-align: center; flex-shrink: 0; font-family: var(--font-sans); display: inline-block; }
+.rep-low { background: var(--color-bg-danger); color: var(--color-text-danger); }
+.rep-med { background: var(--color-bg-warning); color: var(--color-text-warning); }
+.rep-high { background: var(--color-bg-success); color: var(--color-text-success); }
+
+.red { color: var(--color-text-danger); }
+.amber { color: var(--color-text-warning); }
+.green { color: var(--color-text-success); }
+.blue { color: var(--color-text-info); }
+
+.app-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.app-row:last-child { border-bottom: none; }
+.app-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); width: 100px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-sans); }
+.app-bar-wrap { flex: 1; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden; }
+.app-bar-fill { height: 8px; border-radius: 4px; }
+.app-mb { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); width: 46px; text-align: right; flex-shrink: 0; }
+
+.bw-stat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm); margin-bottom: 12px; }
+.bw-tile { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); }
+.bw-label { font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.2px; margin-bottom: 4px; font-family: var(--font-sans); }
+.bw-val { font-size: 18px; font-weight: 500; color: var(--color-text-primary); line-height: 1; font-family: var(--font-sans); }
+.bw-unit { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; font-family: var(--font-sans); }
+
+.kpi { background: var(--color-bg-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--radius-md); padding: 14px 16px; }
+.kpi-country { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-sans); }
+.kpi-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); line-height: 1; margin-bottom: 4px; font-family: var(--font-sans); }
+.kpi-sub { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-sans); }
+.kpi-bar { height: 3px; border-radius: 2px; margin-top: 8px; background: var(--color-border-tertiary); }
+.kpi-bar-fill { height: 3px; border-radius: 2px; }
+
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 10px 0; }
+.sec-divider { border: none; border-top: 1px solid var(--color-border-secondary); margin: 4px 0 14px; }
+.sec-label { font-size: 11px; color: var(--color-text-tertiary); letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 10px; font-family: var(--font-sans); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+</style>
 </head>
 <body>
-    <div>
-        <button class="tab-button active" onclick="showTab('socDashboard')">SOC Dashboard</button>
-        <button class="tab-button" onclick="showTab('incidentWorkbench')">Incident Workbench</button>
-    </div>
-    <div id="socDashboard" class="tab active">
-        <h1>SOC Dashboard</h1>
-        <!-- SOC Dashboard content goes here -->
-    </div>
-    <div id="incidentWorkbench" class="tab">
-        <h1>Incident Workbench</h1>
-        <!-- Incident Workbench content goes here -->
-    </div>
 
-    <script>
-        function showTab(tabId) {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-    </script>
+<div class="app-bar">
+  <div class="app-bar-left">
+    <a class="product-logo" href="#">
+      <div class="logo-shield">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1L2 3v4c0 3 2.5 5.5 5 6 2.5-.5 5-3 5-6V3L7 1z" fill="#fff"/>
+        </svg>
+      </div>
+      Log360
+    </a>
+    <div class="app-bar-sep"></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb" id="breadcrumb">
+      Dashboard <span>›</span> Squid proxy <span>›</span> SOC operations
+    </nav>
+  </div>
+  <div class="app-bar-right">
+    <button class="btn">Export</button>
+    <button class="btn btn-primary">New incident</button>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-button active" onclick="switchTab(event, 'soc-dashboard')">SOC Dashboard</button>
+  <button class="tab-button" onclick="switchTab(event, 'incident-workbench')">Incident Workbench</button>
+</div>
+
+<div id="soc-dashboard" class="tab-content active">
+<div class="page">
+<div class="db">
+<div class="topbar">
+  <div><div class="tb-title">Squid proxy — SOC operations dashboard</div><div class="tb-meta">Log360 · 16 Apr 2026 · 14:32 IST</div></div>
+  <div class="trange">
+    <button class="active" onclick="setRange(this,'24h')">24h</button>
+    <button onclick="setRange(this,'7d')">7d</button>
+    <button onclick="setRange(this,'30d')">30d</button>
+  </div>
+</div>
+<div class="metrics">
+  <div class="mc"><div class="mc-lbl">Malicious domain hits</div><div class="mc-val" id="m1">14</div><div class="mc-sub red">4 unique sources</div></div>
+  <div class="mc"><div class="mc-lbl">Suspected exfiltration</div><div class="mc-val" id="m2">3</div><div class="mc-sub amber">2 users flagged</div></div>
+  <div class="mc"><div class="mc-lbl">Policy denials</div><div class="mc-val" id="m3">287</div><div class="mc-sub amber">+18% vs yesterday</div></div>
+  <div class="mc"><div class="mc-lbl">Auth failures</div><div class="mc-val" id="m4">9</div><div class="mc-sub green">3 source IPs</div></div>
+</div>
+<div class="grid3">
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Threat category breakdown</div><div class="cuc">Malicious domain access · Pie chart</div></div><span class="badge b-crit">Critical</span></div>
+    <div style="position:relative;width:100%;height:155px;"><canvas id="c1" role="img" aria-label="Pie chart">Chart</canvas></div>
+    <div class="legend" id="leg1"></div>
+  </div>
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Policy violation funnel</div><div class="cuc">Repeated access denials · Funnel</div></div><span class="badge b-high">High</span></div>
+    <div id="funnel" style="padding:2px 0;"></div>
+  </div>
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">C2 beaconing timeline</div><div class="cuc">Malware detection · Area chart</div></div><span class="badge b-crit">Critical</span></div>
+    <div style="position:relative;width:100%;height:155px;"><canvas id="c3" role="img" aria-label="Area chart">Chart</canvas></div>
+  </div>
+</div>
+<div class="grid2">
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">User activity donut</div><div class="cuc">User web activity · Donut chart</div></div><span class="badge b-ok">Compliant</span></div>
+    <div style="display:flex;align-items:center;gap:20px;"><div style="position:relative;width:155px;height:155px;flex-shrink:0;"><canvas id="c9" role="img" aria-label="Donut chart">Chart</canvas></div><div id="leg9" style="flex:1;"></div></div>
+  </div>
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Proxy health waterfall</div><div class="cuc">Proxy availability · Stacked bar</div></div><span class="badge b-ok">Healthy</span></div>
+    <div style="position:relative;width:100%;height:155px;"><canvas id="c10" role="img" aria-label="Bar chart">Chart</canvas></div>
+  </div>
+</div>
+<div class="sec-label" style="margin-top:20px;">Top cloud apps · Bandwidth overview</div>
+<div class="grid2">
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Top cloud apps accessed</div><div class="cuc">App discovery · Shadow IT</div></div><span class="badge b-high">High risk</span></div>
+    <div id="app-list"></div>
+  </div>
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Bandwidth overview</div><div class="cuc">Cache efficiency · Mixed chart</div></div><span class="badge b-med">Optimized</span></div>
+    <div class="bw-stat">
+      <div class="bw-tile"><div class="bw-label">Total inbound</div><div class="bw-val">48.2</div><div class="bw-unit">GB today</div></div>
+      <div class="bw-tile"><div class="bw-label">Total outbound</div><div class="bw-val">12.7</div><div class="bw-unit">GB today</div></div>
+      <div class="bw-tile"><div class="bw-label">Cache saved</div><div class="bw-val">19.4</div><div class="bw-unit">GB · 29%</div></div>
+    </div>
+  </div>
+</div>
+<div class="grid4" style="margin-top:20px;">
+  <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">Top source country</div><div class="kpi-country">🇮🇳 India</div><div class="kpi-val">18,420</div><div class="kpi-sub">38% of all requests</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#378ADD;"></div></div></div>
+  <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">2nd source country</div><div class="kpi-country">🇺🇸 United States</div><div class="kpi-val">9,180</div><div class="kpi-sub">19% of all requests</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:50%;background:#378ADD;"></div></div></div>
+  <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">Top destination country</div><div class="kpi-country">🇺🇸 United States</div><div class="kpi-val">24,610</div><div class="kpi-sub">51% of outbound traffic</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#1D9E75;"></div></div></div>
+  <div class="kpi" style="border:1px solid #F09595;"><div style="font-size:10px;color:#A32D2D;text-transform:uppercase;">Flagged destination</div><div class="kpi-country" style="color:#A32D2D;">🇷🇺 Russia</div><div class="kpi-val" style="color:#A32D2D;">47</div><div class="kpi-sub" style="color:#A32D2D;">requests · 3 IPs</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:8%;background:#E24B4A;"></div></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="incident-workbench" class="tab-content">
+<div class="page">
+<div class="db" style="padding-bottom: 20px;">
+  <div class="topbar">
+    <div><div class="tb-title">Incident workbench — URL investigation</div><div class="tb-meta">Log360 · 16 Apr 2026</div></div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn">Export as PDF</button>
+      <button class="btn">Add to incident</button>
+      <button class="btn btn-danger">Close incident</button>
+    </div>
+  </div>
+</div>
+
+<div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 16px;">
+  <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--color-text-primary); word-break: break-all; margin-bottom: 10px;">http://c2beacon.ru/check?id=a3f9&amp;session=x92k</div>
+  <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+    <span class="badge" style="background: var(--color-bg-danger); color: var(--color-text-danger);">IOC match</span>
+    <span class="badge" style="background: var(--color-bg-danger); color: var(--color-text-danger);">C2 infrastructure</span>
+    <span class="badge" style="background: var(--color-bg-warning); color: var(--color-text-warning);">Domain age: 3 days</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;">
+    <div style="background: var(--color-bg-primary); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--color-border-tertiary);"><div style="font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;">Total requests</div><div style="font-size: 18px; font-weight: 600; color: var(--color-text-primary); line-height: 1;">47</div><div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px;">today</div></div>
+    <div style="background: var(--color-bg-primary); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--color-border-tertiary);"><div style="font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;">Distinct sources</div><div style="font-size: 18px; font-weight: 600; color: var(--color-text-primary); line-height: 1;">3</div><div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px;">hosts</div></div>
+    <div style="background: var(--color-bg-primary); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--color-border-tertiary);"><div style="font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;">Distinct users</div><div style="font-size: 18px; font-weight: 600; color: var(--color-text-primary); line-height: 1;">2</div><div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px;">identities</div></div>
+    <div style="background: var(--color-bg-primary); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--color-border-tertiary);"><div style="font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;">Total bytes out</div><div style="font-size: 18px; font-weight: 600; color: var(--color-text-primary); line-height: 1;">18.4</div><div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px;">KB</div></div>
+    <div style="background: var(--color-bg-primary); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--color-border-tertiary);"><div style="font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;">First seen</div><div style="font-size: 18px; font-weight: 600; color: var(--color-text-primary); line-height: 1;">14:31</div><div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px;">today</div></div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">URL access timeline</div><div class="cuc">Chronological request log</div></div><span class="badge b-crit">Beacon pattern</span></div>
+    <ul style="list-style: none;" id="tl-list">
+      <li style="display: flex; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid var(--color-border-tertiary);"><span style="font-size: 11px; font-family: var(--font-mono); color: var(--color-text-tertiary); width: 50px; flex-shrink: 0;">14:31:22</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #E24B4A; margin-top: 2px;"></span><div style="flex: 1;"><div style="font-size: 12px; color: var(--color-text-primary);">TCP_MISS/200 · GET · 843 bytes</div><div style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); margin-top: 2px;">192.168.10.45 · jsmith · 230ms</div></div></li>
+      <li style="display: flex; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid var(--color-border-tertiary);"><span style="font-size: 11px; font-family: var(--font-mono); color: var(--color-text-tertiary); width: 50px; flex-shrink: 0;">14:33:22</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #E24B4A; margin-top: 2px;"></span><div style="flex: 1;"><div style="font-size: 12px; color: var(--color-text-primary);">TCP_MISS/200 · GET · 843 bytes</div><div style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); margin-top: 2px;">192.168.10.45 · jsmith · 218ms</div></div></li>
+      <li style="display: flex; gap: 10px; padding: 7px 0;"><span style="font-size: 11px; font-family: var(--font-mono); color: var(--color-text-tertiary); width: 50px; flex-shrink: 0;">14:35:22</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #E24B4A; margin-top: 2px;"></span><div style="flex: 1;"><div style="font-size: 12px; color: var(--color-text-primary);">TCP_MISS/200 · GET · 843 bytes</div><div style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); margin-top: 2px;">192.168.10.45 · jsmith · 225ms</div></div></li>
+    </ul>
+    <div style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 8px;">Showing 3 of 47 events · 2-min interval = beaconing pattern</div>
+  </div>
+
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Top source hosts</div><div class="cuc">Ranked by request count</div></div></div>
+    <div style="margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 11px; color: var(--color-text-secondary); width: 116px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">192.168.10.45</span>
+        <div style="flex: 1; height: 7px; background: var(--color-bg-secondary); border-radius: 4px;"><div style="height: 7px; border-radius: 4px; width: 100%; background: #E24B4A;"></div></div>
+        <span style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); width: 32px; text-align: right;">31</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 11px; color: var(--color-text-secondary); width: 116px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">192.168.10.82</span>
+        <div style="flex: 1; height: 7px; background: var(--color-bg-secondary); border-radius: 4px;"><div style="height: 7px; border-radius: 4px; width: 48%; background: #EF9F27;"></div></div>
+        <span style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); width: 32px; text-align: right;">11</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 11px; color: var(--color-text-secondary); width: 116px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">192.168.10.91</span>
+        <div style="flex: 1; height: 7px; background: var(--color-bg-secondary); border-radius: 4px;"><div style="height: 7px; border-radius: 4px; width: 22%; background: #378ADD;"></div></div>
+        <span style="font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-mono); width: 32px; text-align: right;">5</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid3">
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Transfer summary</div><div class="cuc">Bytes and latency</div></div></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+      <div style="background: var(--color-bg-secondary); padding: 10px 12px; border-radius: var(--radius-md);"><div style="font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase;">Total inbound</div><div style="font-size: 18px; font-weight: 500; color: var(--color-text-primary); line-height: 1;">39.6 KB</div></div>
+      <div style="background: var(--color-bg-secondary); padding: 10px 12px; border-radius: var(--radius-md);"><div style="font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase;">Avg latency</div><div style="font-size: 18px; font-weight: 500; color: var(--color-text-primary); line-height: 1;">228 ms</div></div>
+    </div>
+    <div style="font-size: 11px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--color-bg-danger); color: var(--color-text-danger);">Consistent 200s with fixed payload = automated beacon.</div>
+  </div>
+
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">HTTP methods</div><div class="cuc">Request breakdown</div></div></div>
+    <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+      <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary);"><span style="width: 10px; height: 10px; border-radius: 2px; background: #378ADD;"></span>GET 47</span>
+      <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary);"><span style="width: 10px; height: 10px; border-radius: 2px; background: #B4B2A9;"></span>POST 0</span>
+    </div>
+    <div style="font-size: 11px; color: var(--color-text-secondary);"><strong>Pattern:</strong> Regular beacon (120s ± 8s)</div>
+  </div>
+
+  <div class="card">
+    <div class="chdr"><div><div class="ctitle">Cache behavior</div><div class="cuc">TCP_HIT vs TCP_MISS</div></div></div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <div style="font-size: 32px; font-weight: 600; color: #E24B4A;">100%</div>
+      <div>
+        <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary);">All TCP_MISS</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">0 cache hits out of 47</div>
+        <div style="font-size: 11px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--color-bg-danger); color: var(--color-text-danger); margin-top: 6px;">Dynamic content never cached.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+  <div class="chdr"><div><div class="ctitle">Similar URLs on same domain</div><div class="cuc">Other paths accessed on c2beacon.ru</div></div><span class="badge b-crit">Escalation</span></div>
+  <div style="display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 11px;"><span style="font-family: var(--font-mono); color: var(--color-text-primary); flex: 1;">/check?id=b7m2&session=p44x</span><span class="badge b-med">12 req</span></div>
+  <div style="display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 11px;"><span style="font-family: var(--font-mono); color: var(--color-text-primary); flex: 1;">/check?id=c9n1&session=r77z</span><span class="badge b-med">9 req</span></div>
+  <div style="display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 11px;"><span style="font-family: var(--font-mono); color: var(--color-text-primary); flex: 1;">/stage2/payload.bin</span><span class="badge b-crit">1 req</span></div>
+  <div style="font-size: 11px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--color-bg-danger); color: var(--color-text-danger); margin-top: 10px;">⚠️ Stage 2 payload detected. Isolate host 192.168.10.45 immediately.</div>
+</div>
+
+</div>
+</div>
+
+<script>
+function switchTab(event, tabId) {
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+  
+  if (tabId === 'incident-workbench') {
+    document.getElementById('breadcrumb').innerHTML = 'Incidents <span>›</span> Workbench <span>›</span> URL Investigation';
+  } else {
+    document.getElementById('breadcrumb').innerHTML = 'Dashboard <span>›</span> Squid proxy <span>›</span> SOC operations';
+  }
+}
+
+function setRange(btn,r){
+  document.querySelectorAll('.trange button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const d={'24h':[14,3,287,9],'7d':[89,21,1840,47],'30d':[312,74,6200,183]};
+  const v=d[r];
+  ['m1','m2','m3','m4'].forEach((id,i)=>document.getElementById(id).textContent=v[i].toLocaleString());
+}
+
+const PC=['#E24B4A','#EF9F27','#378ADD','#639922','#7F77DD'];
+const PL=['C2/Malware','Phishing','Known IOC','Tor/Proxy','Suspicious'];
+const PV=[28,22,19,18,13];
+new Chart(document.getElementById('c1'),{type:'pie',data:{labels:PL,datasets:[{data:PV,backgroundColor:PC,borderWidth:2,borderColor:'#ffffff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+const l1=document.getElementById('leg1');
+PL.forEach((l,i)=>{l1.innerHTML+=`<div class="leg-item"><div class="leg-swatch" style="background:${PC[i]};"></div>${l} ${PV[i]}%</div>`;});
+
+const fEl=document.getElementById('funnel');
+[{label:'Total requests',val:48200,bg:'#B5D4F4',tc:'#0C447C'},{label:'Policy checked',val:48200,bg:'#85B7EB',tc:'#0C447C'},{label:'TCP_DENIED',val:287,bg:'#FAC775',tc:'#633806'},{label:'Repeat violators',val:47,bg:'#F09595',tc:'#A32D2D'}].forEach(d=>{const pct=Math.max((d.val/48200)*100,5);fEl.innerHTML+=`<div style="margin:3px 0;width:${pct}%;margin-left:${(100-pct)/2}%;background:${d.bg};border-radius:4px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;color:${d.tc};font-weight:500;">${d.label}</span><span style="font-size:10px;color:${d.tc};font-weight:600;">${d.val.toLocaleString()}</span></div>`;});
+
+const hrs=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+const base=hrs.map(h=>{const hr=parseInt(h);return(hr>=9&&hr<=18)?Math.floor(Math.random()*8+2):Math.floor(Math.random()*3);});
+new Chart(document.getElementById('c3'),{type:'line',data:{labels:hrs,datasets:[{label:'Normal',data:base,fill:true,backgroundColor:'rgba(55,138,221,0.1)',borderColor:'#378ADD',borderWidth:1.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+const DU=['asingh','smenon','jsmith','mthomas','kpatel','others'];
+const DV=[21,19,15,13,9,23];
+const DC=['#E24B4A','#EF9F27','#378ADD','#1D9E75','#7F77DD','#B4B2A9'];
+new Chart(document.getElementById('c9'),{type:'doughnut',data:{labels:DU,datasets:[{data:DV,backgroundColor:DC,borderWidth:2,borderColor:'#ffffff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+const l9=document.getElementById('leg9');
+DU.forEach((u,i)=>{l9.innerHTML+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;"><div style="display:flex;align-items:center;gap:6px;"><div style="width:10px;height:10px;border-radius:2px;background:${DC[i]};"></div>${u}</div><span style="font-size:11px;color:var(--color-text-secondary);">${DV[i]}%</span></div>`;});
+
+new Chart(document.getElementById('c10'),{type:'bar',data:{labels:['00:00','04:00','08:00','12:00','16:00','20:00'],datasets:[{label:'TCP_HIT',data:[420,380,290,340,890,1240],backgroundColor:'#639922'},{label:'TCP_MISS',data:[1200,1450,980,1120,2100,2850],backgroundColor:'#378ADD'},{label:'TCP_ERROR',data:[80,120,60,90,150,210],backgroundColor:'#E24B4A'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+const apps=[{name:'Dropbox',mb:1840,rep:'Low'},{name:'Google Drive',mb:1240,rep:'High'},{name:'Slack',mb:890,rep:'High'},{name:'WeTransfer',mb:720,rep:'Low'}];
+const maxMB=apps[0].mb;
+const repCol={Low:'#E24B4A',Medium:'#EF9F27',High:'#639922'};
+const repCls={Low:'rep-low',Medium:'rep-med',High:'rep-high'};
+const aList=document.getElementById('app-list');
+apps.forEach(a=>{const pct=Math.round((a.mb/maxMB)*100);const disp=a.mb>=1000?(a.mb/1000).toFixed(1)+'GB':a.mb+'MB';aList.innerHTML+=`<div class="app-row"><div class="app-name">${a.name}</div><div class="app-bar-wrap"><div class="app-bar-fill" style="width:${pct}%;background:${repCol[a.rep]};"></div></div><span class="rep-pill ${repCls[a.rep]}">${a.rep}</span><div class="app-mb">${disp}</div></div>`;});
+</script>
 </body>
 </html>
