@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Log360 — Dashboard & Incident Workbench</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <style>
 :root {
   --color-bg-page:          #F4F6F8;
@@ -250,7 +252,8 @@ body { font-family: var(--font-sans); background: var(--color-bg-page); color: v
     <div style="position:relative;width:100%;height:155px;"><canvas id="c10" role="img" aria-label="Bar chart">Chart</canvas></div>
   </div>
 </div>
-<div class="sec-label" style="margin-top:20px;">Top cloud apps · Bandwidth overview</div>
+<div class="sec-label" style="margin-top:20px;">App discovery · Bandwidth · Geo connections · Country KPIs</div>
+
 <div class="grid2">
   <div class="card">
     <div class="chdr"><div><div class="ctitle">Top cloud apps accessed</div><div class="cuc">App discovery · Shadow IT</div></div><span class="badge b-high">High risk</span></div>
@@ -265,7 +268,22 @@ body { font-family: var(--font-sans); background: var(--color-bg-page); color: v
     </div>
   </div>
 </div>
-<div class="grid4" style="margin-top:20px;">
+
+<div class="card" style="margin-bottom:14px;">
+  <div class="chdr"><div><div class="ctitle">Connection geomap</div><div class="cuc">Source → destination connections · World map</div></div><span class="badge b-med">Geo intelligence</span></div>
+  <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+    <div style="font-size:11px;color:var(--color-text-secondary);">Circle size = connection volume &nbsp;·&nbsp; Arc color = risk level</div>
+    <div style="display:flex;gap:10px;margin-left:auto;">
+      <div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#E24B4A;"></div>High risk</div>
+      <div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#EF9F27;"></div>Medium</div>
+      <div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#378ADD;"></div>Low risk</div>
+      <div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;"></div>Source</div>
+    </div>
+  </div>
+  <div id="geomap" style="width:100%;height:350px;border-radius:var(--radius-md);overflow:hidden;background:var(--color-bg-secondary);"></div>
+</div>
+
+<div class="grid4">
   <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">Top source country</div><div class="kpi-country">🇮🇳 India</div><div class="kpi-val">18,420</div><div class="kpi-sub">38% of all requests</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#378ADD;"></div></div></div>
   <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">2nd source country</div><div class="kpi-country">🇺🇸 United States</div><div class="kpi-val">9,180</div><div class="kpi-sub">19% of all requests</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:50%;background:#378ADD;"></div></div></div>
   <div class="kpi"><div style="font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;">Top destination country</div><div class="kpi-country">🇺🇸 United States</div><div class="kpi-val">24,610</div><div class="kpi-sub">51% of outbound traffic</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#1D9E75;"></div></div></div>
@@ -431,6 +449,61 @@ const repCol={Low:'#E24B4A',Medium:'#EF9F27',High:'#639922'};
 const repCls={Low:'rep-low',Medium:'rep-med',High:'rep-high'};
 const aList=document.getElementById('app-list');
 apps.forEach(a=>{const pct=Math.round((a.mb/maxMB)*100);const disp=a.mb>=1000?(a.mb/1000).toFixed(1)+'GB':a.mb+'MB';aList.innerHTML+=`<div class="app-row"><div class="app-name">${a.name}</div><div class="app-bar-wrap"><div class="app-bar-fill" style="width:${pct}%;background:${repCol[a.rep]};"></div></div><span class="rep-pill ${repCls[a.rep]}">${a.rep}</span><div class="app-mb">${disp}</div></div>`;});
+// Geomap widget
+(function(){
+  const el = document.getElementById('geomap');
+  if (!el) return;
+  
+  const svg = d3.select('#geomap').append('svg').attr('width', '100%').attr('height', '100%').attr('viewBox', '0 0 960 600');
+  
+  // Load world topology
+  d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
+    const countries = topojson.feature(world, world.objects.countries);
+    const projection = d3.geoMercator().fitSize([960, 600], countries);
+    const path = d3.geoPath().projection(projection);
+    
+    svg.append('g')
+      .selectAll('path')
+      .data(countries.features)
+      .join('path')
+      .attr('d', path)
+      .attr('fill', '#E8ECF0')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 0.5);
+    
+    // Add connection arcs (India → USA, USA → Russia, etc.)
+    const connections = [
+      {source: [78.96, 20.59], target: [-95.71, 37.09], risk: 'low', volume: 30},
+      {source: [-95.71, 37.09], target: [105.31, 61.52], risk: 'high', volume: 15},
+      {source: [78.96, 20.59], target: [37.62, 55.75], risk: 'medium', volume: 10}
+    ];
+    
+    const riskColors = {low: '#378ADD', medium: '#EF9F27', high: '#E24B4A'};
+    
+    connections.forEach(c => {
+      const p1 = projection(c.source);
+      const p2 = projection(c.target);
+      const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 - 50];
+      
+      svg.append('path')
+        .attr('d', `M${p1[0]},${p1[1]}Q${mid[0]},${mid[1]},${p2[0]},${p2[1]}`)
+        .attr('stroke', riskColors[c.risk])
+        .attr('stroke-width', c.volume / 5)
+        .attr('fill', 'none')
+        .attr('opacity', 0.6);
+    });
+    
+    // Add source circles
+    connections.forEach(c => {
+      svg.append('circle')
+        .attr('cx', projection(c.source)[0])
+        .attr('cy', projection(c.source)[1])
+        .attr('r', 4)
+        .attr('fill', '#1D9E75')
+        .attr('opacity', 0.8);
+    });
+  });
+})();
 </script>
 </body>
 </html>
